@@ -3,6 +3,8 @@ langchain
 langchain-openai
 langgraph
 openai
+openpyxl
 pandas
 pydantic
+python-dotenv
 streamlit

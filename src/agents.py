@@ -94,7 +94,6 @@ def research(state: ResearchState):
             #model="o4-mini-deep-research",
             input=input_text,
             background=False,
-            temperature=0.0,
             tools=[
                 {"type": "web_search"},
                 {
@@ -128,7 +127,7 @@ def research(state: ResearchState):
             attempt += 1
             time.sleep(2)
 
-    return {"research_report": response}
+    return {"research_report": response.output_text}
 
 
 # --------------------------------------------
@@ -140,14 +139,20 @@ def get_graph_from_agent(response):
 
     container_id = ""
     container_file_id = ""
+    container_filename = "no.no"
     for item in response.output:
       try:
         container_id = item.content[0].annotations[0].container_id
         container_file_id = item.content[0].annotations[0].file_id
-      except Exception as e:
+        container_filename = item.content[0].annotations[0].filename
+        print("Succesful Item")
         print(item)
+      except Exception as e:
+        pass
 
-    if container_id and container_file_id:
+    _, file_extension = os.path.splitext(container_filename)
+    is_image = file_extension in [".png", ".jpg", ".jpeg"]
+    if container_id and container_file_id and is_image:
 
         OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
 
@@ -181,7 +186,6 @@ def analytics(state: AnalyticsState):
         expires_after={"anchor": "created_at", "seconds": 43200})
 
     file_id = upload_file.id
-    print(file_id)
 
     instructions = f"""You have these tasks: {state["analytics_instructions"].tasks}
     You should accomplish them while mainting this focus: {state["analytics_instructions"].focus}
@@ -195,7 +199,6 @@ def analytics(state: AnalyticsState):
     response = client.responses.create(
       model="gpt-4.1",
       tools=[{"type":"code_interpreter", "container": {"type":"auto", "file_ids":[file_id]}}],
-      #input="Load the CSV and compute summary statistics and a plot of column sales."
       input=instructions
     )
 
@@ -205,7 +208,7 @@ def analytics(state: AnalyticsState):
 
 
 # --------------------------------------------
-#              Manager Agent
+#              Synthesizer Agent
 # --------------------------------------------
 
 def synthesizer(state: State):
@@ -253,13 +256,13 @@ def synthesizer(state: State):
                     },
                 ],
             }]
+        
     else:
 
         inputs = information_prompt + command_prompt
 
     response = client.responses.create(
         model="gpt-5",
-        temperature=0.0,
         input=inputs
     )
     

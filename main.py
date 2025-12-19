@@ -1,5 +1,6 @@
 import streamlit as st
 import tempfile
+from datetime import datetime
 from src.graph import run_graph
 from dotenv import load_dotenv
 load_dotenv()
@@ -35,9 +36,11 @@ if business_profile and goal and input_file is not None:
     process = st.button("Get Report")
 
     if process:
+        start = datetime.now()
         st.session_state.report, st.session_state.image_path = run_graph(graph_input)
-
-    if st.session_state.report is not None and st.session_state.image_path is not None:
-        st.image(st.session_state.image_path)
+        print("Total Latency:", datetime.now()-start)
+    if st.session_state.report is not None:
         st.write(st.session_state.report)
+        if st.session_state.image_path is not None:
+            st.image(st.session_state.image_path)
 
