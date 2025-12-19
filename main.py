@@ -27,15 +27,17 @@ if input_file is not None:
         tmp.write(input_file.getbuffer())
         temp_path = tmp.name
 
-graph_input = {"goal":goal,
-              "business_profile":business_profile,
-              "data_path":temp_path}
+if business_profile and goal and input_file is not None:
+    graph_input = {"goal":goal,
+                "business_profile":business_profile,
+                "data_path":temp_path}
 
-process = st.button("Get Report")
-if process:
-    st.session_state.report, st.session_state.image_path = run_graph(graph_input)
+    process = st.button("Get Report")
 
-if st.session_state.report is not None and st.session_state.image_path is not None:
-    st.image(st.session_state.image_path)
-    st.write(st.session_state.report)
+    if process:
+        st.session_state.report, st.session_state.image_path = run_graph(graph_input)
+
+    if st.session_state.report is not None and st.session_state.image_path is not None:
+        st.image(st.session_state.image_path)
+        st.write(st.session_state.report)
 

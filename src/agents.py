@@ -94,6 +94,7 @@ def research(state: ResearchState):
             #model="o4-mini-deep-research",
             input=input_text,
             background=False,
+            temperature=0.0,
             tools=[
                 {"type": "web_search"},
                 {
@@ -194,7 +195,8 @@ def analytics(state: AnalyticsState):
     response = client.responses.create(
       model="gpt-4.1",
       tools=[{"type":"code_interpreter", "container": {"type":"auto", "file_ids":[file_id]}}],
-      input="Load the CSV and compute summary statistics and a plot of column sales."
+      #input="Load the CSV and compute summary statistics and a plot of column sales."
+      input=instructions
     )
 
     graph_file_path = get_graph_from_agent(response)
@@ -257,6 +259,7 @@ def synthesizer(state: State):
 
     response = client.responses.create(
         model="gpt-5",
+        temperature=0.0,
         input=inputs
     )
     
