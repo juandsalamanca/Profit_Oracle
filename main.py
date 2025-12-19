@@ -4,6 +4,14 @@ from src.graph import run_graph
 from dotenv import load_dotenv
 load_dotenv()
 
+
+if "report" not in st.session_state:
+    st.session_state.report = None
+
+if "image_path" not in st.session_state:
+    st.session_state.image_path = None
+
+
 st.header("Profit Oracle Agents")
 
 business_profile = st.text_input("Input here your business profile")
@@ -23,9 +31,11 @@ graph_input = {"goal":goal,
               "business_profile":business_profile,
               "data_path":temp_path}
 
+process = st.button("Get Report")
+if process:
+    st.session_state.report, st.session_state.image_path = run_graph(graph_input)
 
-report, image_path = run_graph(graph_input)
-
-st.image(image_path)
-st.write(report)
+if st.session_state.report is not None and st.session_state.image_path is not None:
+    st.image(st.session_state.image_path)
+    st.write(st.session_state.report)
 
