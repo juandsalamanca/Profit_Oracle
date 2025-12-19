@@ -1,0 +1,8 @@
+IPython
+langchain
+langchain-openai
+langgraph
+openai
+pandas
+pydantic
+streamlit
