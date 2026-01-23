@@ -38,11 +38,12 @@ async def analyze_data(
         try:
             with open(image_path, "rb") as image_file:
                 image_data = base64.b64encode(image_file.read()).decode('utf-8')
-
+            print("image encoded")
             # Get image file extension for proper MIME type
             image_ext = image_path.split(".")[-1].lower()
             mime_type = f"image/{image_ext}" if image_ext in ['png', 'jpg', 'jpeg', 'gif', 'svg'] else "image/png"
-
+            print("mime", mime_type)
+            print(image_path)
             result = {
             "report": report,
             "image": {
@@ -52,6 +53,8 @@ async def analyze_data(
             },
             "status": "success"
             }
+            print("JSON response built")
+
         except Exception as e:
             print(e)
             result = {
