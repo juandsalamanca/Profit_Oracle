@@ -131,7 +131,7 @@ def research(state: ResearchState):
 
 
 # --------------------------------------------
-#              Manager Agent
+#              Analytics Agent
 # --------------------------------------------
 
 def get_graph_from_agent(response):
