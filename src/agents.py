@@ -7,7 +7,8 @@ import requests
 import os
 from datetime import datetime
 from src.models import ManagerCommand, State, ResearchState, AnalyticsState, SynthersizerState
-
+from dotenv import load_dotenv
+load_dotenv()
 
 # --------------------------------------------
 #              Manager Agent
@@ -68,10 +69,10 @@ def manager_command(state: State):
 
 def simplify_prompt(prompt, client):
 
-    input_text = f"""I'll provide you with a prompt that caused the o4-mini-deep-research to have a Rate Limit Error
-    for exceeding the 200k token limit. Your goal is to simplify the task in the prompt such that it makes it less likely
-    to have the model performing so many actions that it exceeds the rate limit. You need to do this without compromising
-    the quality of the prompt, the essence of the task or the main goal of the prompt.
+    input_text = f"""I'll provide you with a prompt that caused the OpenAI's o3-deep-research model to have a Rate Limit 
+    Error for exceeding the 200k token limit. Your goal is to simplify the task in the prompt such that it makes it less 
+    likely to have the model performing so many actions that it exceeds the rate limit. You need to do this without 
+    compromising the quality of the prompt, the essence of the task or the main goal of the prompt.
     Return ONLY the modified prompt for the model with no additional comments.
     Here's the prompt you need to simplify:
     {prompt}"""

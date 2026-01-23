@@ -5,6 +5,7 @@ import tempfile
 import base64
 import os
 from src.graph import run_graph
+from src.s3_retrieval import get_last_client_snapshot
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -32,16 +33,17 @@ async def analyze_data(
                 "data_path":temp_path}
 
         report, image_path = run_graph(graph_input)
-
+        print("Graph done")
         # Read and encode the image file as base64
-        with open(image_path, "rb") as image_file:
-            image_data = base64.b64encode(image_file.read()).decode('utf-8')
+        try:
+            with open(image_path, "rb") as image_file:
+                image_data = base64.b64encode(image_file.read()).decode('utf-8')
 
-        # Get image file extension for proper MIME type
-        image_ext = image_path.split(".")[-1].lower()
-        mime_type = f"image/{image_ext}" if image_ext in ['png', 'jpg', 'jpeg', 'gif', 'svg'] else "image/png"
+            # Get image file extension for proper MIME type
+            image_ext = image_path.split(".")[-1].lower()
+            mime_type = f"image/{image_ext}" if image_ext in ['png', 'jpg', 'jpeg', 'gif', 'svg'] else "image/png"
 
-        result = {
+            result = {
             "report": report,
             "image": {
                 "data": image_data,
@@ -49,7 +51,13 @@ async def analyze_data(
                 "filename": os.path.basename(image_path)
             },
             "status": "success"
-        }
+            }
+        except Exception as e:
+            print(e)
+            result = {
+            "report": report,
+            "status": "success"
+            }
 
         return JSONResponse(content=result, status_code=200)
 
@@ -65,6 +73,12 @@ async def analyze_data(
                 os.unlink(temp_path)
             except:
                 pass
+
+@app.post("/retrieve_s3")
+async def retreive_s3(client:str = Form(...), idx:int = Form(...)):
+
+    snapshot = get_last_client_snapshot(client, idx)
+    return {"snapshot": snapshot}
 
 @app.get("/")
 async def root():
