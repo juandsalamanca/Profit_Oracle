@@ -29,13 +29,26 @@ def get_client_list(client_kwargs, bucket_name):
 
 def fernet_decryption(ciphertext):
 
-  encryption_key = os.environ["ENCRYPTION_KEY"]
-  fernet = Fernet(encryption_key.encode())
-  decrypted = fernet.decrypt(ciphertext)
+    try:
+        encryption_key = os.environ["ENCRYPTION_KEY"]
+        fernet = Fernet(encryption_key.encode())
+        decrypted = fernet.decrypt(ciphertext).decode()
+    except Exception as e:
+        print(e)
+        try:
+            encryption_key = os.environ["ALT_ENCRYPTION_KEY"]
+            fernet = Fernet(encryption_key.encode())
+            decrypted = fernet.decrypt(ciphertext).decode()
+        except Exception as e:
+            print(e)
+            decrypted = """Data could not be decrypted with available keys.
+            The user that uploaded this data might have used its own encryption key running the app in developer mode"""
 
-  return decrypted.decode()
 
-def get_last_client_snapshot(client_name, snapshot_idx):
+
+    return decrypted
+
+def get_client_snapshot(client_name, snapshot_idx):
     
     bucket_name = os.environ["AWS_S3_BUCKET"]
     client_kwargs = {
@@ -56,6 +69,9 @@ def get_last_client_snapshot(client_name, snapshot_idx):
         for obj in response.get("Contents", []):
             if client_name in obj["Key"] and "snapshots" in obj["Key"]:
                 snapshot_list.append(obj["Key"])
+
+        if not snapshot_list:
+            return f"No snapshot found for client {client_name}"
 
     except Exception as e:
         print(e)

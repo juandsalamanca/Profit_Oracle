@@ -1,32 +1,47 @@
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import JSONResponse
 import uvicorn
 import tempfile
 import base64
 import os
+import asyncio
+from fastapi.concurrency import run_in_threadpool
 from src.graph import run_graph
-from src.s3_retrieval import get_last_client_snapshot
+from src.s3_retrieval import get_client_snapshot
 from dotenv import load_dotenv
+from typing import Optional
 load_dotenv()
 
 app = FastAPI(title="Profit Oracle API", description="API for processing analysis requests")
 
+def save_data_file(file_content, file_name):
 
-@app.post("/analyze")
-async def analyze_data(
-    goal: str = Form(..., description="First string parameter"),
-    business_profile: str = Form(..., description="Second string parameter"),
-    file: UploadFile = File(..., description="File to analyze")
-    ):
-    
+    suffix = file_name.split(".")[-1] if "." in file_name else "tmp"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=f".{suffix}") as tmp:
+        tmp.write(file_content)
+        temp_path = tmp.name
+
+    return temp_path
+
+def run_analysis(goal, business_profile, file_urls, file_content, file_name, client_name, snapshot_idx):
+
+    # Placeholder for the actual analysis logic
     temp_path = None
     try:
-        # Read file content
-        file_content = await file.read()
-        suffix = file.filename.split(".")[-1] if "." in file.filename else "tmp"
-        with tempfile.NamedTemporaryFile(delete=False, suffix=f".{suffix}") as tmp:
-            tmp.write(file_content)
-            temp_path = tmp.name
+        if file_urls is not None and len(file_urls) > 0:
+            # Read file content
+            file_content = b'gfds'
+            file_name = "test.txt"
+            temp_path =  save_data_file(file_content, file_name)
+        elif file_content is not None:
+            # Read file content
+            suffix = file_name.split(".")[-1] if "." in file_name else "tmp"
+            with tempfile.NamedTemporaryFile(delete=False, suffix=f".{suffix}") as tmp:
+                tmp.write(file_content)
+                temp_path = tmp.name
+
+        elif client_name and snapshot_idx:
+            snapshot = get_client_snapshot(client_name, snapshot_idx)
 
         graph_input = {"goal":goal,
                 "business_profile":business_profile,
@@ -38,12 +53,10 @@ async def analyze_data(
         try:
             with open(image_path, "rb") as image_file:
                 image_data = base64.b64encode(image_file.read()).decode('utf-8')
-            print("image encoded")
             # Get image file extension for proper MIME type
             image_ext = image_path.split(".")[-1].lower()
             mime_type = f"image/{image_ext}" if image_ext in ['png', 'jpg', 'jpeg', 'gif', 'svg'] else "image/png"
-            print("mime", mime_type)
-            print(image_path)
+
             result = {
             "report": report,
             "image": {
@@ -62,13 +75,10 @@ async def analyze_data(
             "status": "success"
             }
 
-        return JSONResponse(content=result, status_code=200)
+        
 
     except Exception as e:
-        return JSONResponse(
-            content={"error": f"Failed to process request: {str(e)}"},
-            status_code=500
-        )
+        print(f"Failed to process request: {str(e)}")
     finally:
         # Clean up temporary file
         if temp_path and os.path.exists(temp_path):
@@ -77,10 +87,35 @@ async def analyze_data(
             except:
                 pass
 
-@app.post("/retrieve_s3")
-async def retreive_s3(client:str = Form(...), idx:int = Form(...)):
 
-    snapshot = get_last_client_snapshot(client, idx)
+@app.post("/analyze")
+async def analyze_data(
+    goal: str = Form(..., description="The goal/objective of the data analysis process (e.g. increase revenue, etc)"),
+    business_profile: str = Form(..., description="Any useful info about the business for the analysis (location, size, industry, important clients, etc)"),
+    file_urls: Optional[list[str]] = File([], description="Supabase URLs of the files to be analyzed. This one is only used when the user uploads files through the Kixik platform"),
+    file: Optional[UploadFile] = File(None, description="Data file to be analyzed, if the S3 bucket is not used (only csv supported for now)"),
+    client_name: Optional[str] = Form("", description="Client ID used in the Sync app to upload data to S3"),
+    snapshot_idx: Optional[str] = Form("", description="The index of the snapshot of the data you want. Use -1 for the last one, -2 for second to last, 0 for the first one, 1 for the second, etc."),
+    background_tasks: BackgroundTasks = None
+    ):
+    if file is not None:
+        file_content = await file.read()
+        file_name = file.filename
+    else:
+        file_content = None
+        file_name = None
+    background_tasks.add_task(run_analysis, goal, business_profile, file_urls, file_content, file_name, client_name, snapshot_idx)
+    return JSONResponse(content={"message": "Processing"}, status_code=200)
+    
+    
+    
+
+@app.post("/retrieve_s3")
+async def retreive_s3(
+    client:str = Form(..., description="Client ID used in the sync app to upload the data"), 
+    idx:int = Form(..., description="The index of the snapshot of the data you want. Use -1 for the last one, -2 for second to last, 0 for the first one, 1 for the second, etc.")):
+
+    snapshot = await run_in_threadpool(get_client_snapshot, client, idx)
     return {"snapshot": snapshot}
 
 @app.get("/")

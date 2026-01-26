@@ -232,7 +232,8 @@ def synthesizer(state: State):
 
     command_prompt = """You need to use all this information to produce a report with valuable and actionable insights for the client. 
         Remember, the report needs to effectively communicate insights about the clients business and state action items that can 
-        help the client accomplish his goal."""
+        help the client accomplish his goal. Do NOT include any additional suggestions or questions in your answer. Only produce the 
+        report wihtout anything else, as if it was ready to be officially printed."""
 
     if graph_file_path:
 

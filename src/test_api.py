@@ -14,25 +14,27 @@ print(response.text)
 #      Test S3 endpiont
 #---------------------------------
 
-url = "http://localhost:8000/retrieve_s3"
+s3 = False
+if s3:
+    url = "http://localhost:8000/retrieve_s3"
 
-data = {
-    'client': 'kyle',  # Example goal
-    'idx': -1  # Example business profile
-}
-response = requests.post(url, data=data)
+    data = {
+        'client': 'kyle',  # Example goal
+        'idx': -1  # Example business profile
+    }
+    response = requests.post(url, data=data)
 
-if response.status_code == 200:
-    result = response.json()
-    print("Snapshot:", result['snapshot'])
-else:
-    print(response.text)
+    if response.status_code == 200:
+        result = response.json()
+        print("Snapshot:", result['snapshot'])
+    else:
+        print(response.text)
 
 #---------------------------------
 #      Test Analyze endpoint
 #---------------------------------
 
-analyze = False
+analyze = True
 if analyze:
     
     url = "http://localhost:8000/analyze"
@@ -52,7 +54,6 @@ if analyze:
 
     if response.status_code == 200:
         result = response.json()
-        print("Status:", result['status'])
-        print("Report:", result['report'])
+        print("Message:", result['message'])
     else:
         print(response.text)
