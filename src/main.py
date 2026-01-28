@@ -7,9 +7,11 @@ import tempfile
 import base64
 import os
 import asyncio
+import pandas as pd
 from fastapi.concurrency import run_in_threadpool
 from src.graph import run_graph
 from src.s3_retrieval import get_client_snapshot
+from supabase_download import download_and_process_files
 from dotenv import load_dotenv
 from typing import Optional
 import traceback
@@ -27,7 +29,7 @@ def save_data_file(file_content, file_name):
 
     return temp_path
 
-def run_analysis(data, goal="", business_profile="", file_urls=None, file_content=None, file_name=None, client_name=None, snapshot_idx=None):
+def run_analysis(data, client_name=None, snapshot_idx=None):
 
     # Placeholder for the actual analysis logic
     temp_path = None
@@ -38,18 +40,21 @@ def run_analysis(data, goal="", business_profile="", file_urls=None, file_conten
             business_profile = data.business_profile
             file_urls = data.file_urls
             print(f"Goal: {goal}, Business Profile: {business_profile}, File URLs: {file_urls}")
-            file_content = b'gfds'
-            file_name = "test.txt"
-            temp_path =  save_data_file(file_content, file_name)
-        elif file_content is not None:
-            # Read file content
-            suffix = file_name.split(".")[-1] if "." in file_name else "tmp"
-            with tempfile.NamedTemporaryFile(delete=False, suffix=f".{suffix}") as tmp:
-                tmp.write(file_content)
-                temp_path = tmp.name
-
+            processed_files = download_and_process_files(file_urls)
+            file_path_list = []
+            for file_info in processed_files:
+                file_name = file_info["filename"]
+                file_bytes = file_info["content"] if file_info["content"] else b""
+                temp_path =  save_data_file(file_bytes, file_name)
+                file_path_list.append(temp_path)
         elif client_name and snapshot_idx:
             snapshot = get_client_snapshot(client_name, snapshot_idx)
+            for table in snapshot.get("tables", []):
+                table_content = snapshot["tables"][table]
+                df = pd.DataFrame(table_content)
+                file_path = f"{table}.csv"
+                df.to_csv(file_path, index=False)
+                file_path_list.append(file_path)
 
         graph_input = {"goal":goal,
                 "business_profile":business_profile,
