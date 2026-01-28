@@ -1,5 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from typing import List, Optional
 import uvicorn
 import tempfile
 import base64
@@ -23,13 +25,17 @@ def save_data_file(file_content, file_name):
 
     return temp_path
 
-def run_analysis(goal, business_profile, file_urls, file_content, file_name, client_name, snapshot_idx):
+def run_analysis(data, goal="", business_profile="", file_urls=None, file_content=None, file_name=None, client_name=None, snapshot_idx=None):
 
     # Placeholder for the actual analysis logic
     temp_path = None
     try:
-        if file_urls is not None and len(file_urls) > 0:
+        if data is not None and len(data.file_urls) > 0:
             # Read file content
+            goal = data.goal
+            business_profile = data.business_profile
+            file_urls = data.file_urls
+            print(f"Goal: {goal}, Business Profile: {business_profile}, File URLs: {file_urls}")
             file_content = b'gfds'
             file_name = "test.txt"
             temp_path =  save_data_file(file_content, file_name)
@@ -87,17 +93,16 @@ def run_analysis(goal, business_profile, file_urls, file_content, file_name, cli
             except:
                 pass
 
-
-@app.post("/analyze")
-async def analyze_data(
-    goal: str = Form(..., description="The goal/objective of the data analysis process (e.g. increase revenue, etc)"),
+"""
+Old code:
+goal: str = Form(..., description="The goal/objective of the data analysis process (e.g. increase revenue, etc)"),
     business_profile: str = Form(..., description="Any useful info about the business for the analysis (location, size, industry, important clients, etc)"),
     file_urls: Optional[list[str]] = File([], description="Supabase URLs of the files to be analyzed. This one is only used when the user uploads files through the Kixik platform"),
     file: Optional[UploadFile] = File(None, description="Data file to be analyzed, if the S3 bucket is not used (only csv supported for now)"),
     client_name: Optional[str] = Form("", description="Client ID used in the Sync app to upload data to S3"),
     snapshot_idx: Optional[str] = Form("", description="The index of the snapshot of the data you want. Use -1 for the last one, -2 for second to last, 0 for the first one, 1 for the second, etc."),
     background_tasks: BackgroundTasks = None
-    ):
+
     if file is not None:
         file_content = await file.read()
         file_name = file.filename
@@ -105,6 +110,18 @@ async def analyze_data(
         file_content = None
         file_name = None
     background_tasks.add_task(run_analysis, goal, business_profile, file_urls, file_content, file_name, client_name, snapshot_idx)
+"""
+
+
+class AnalysisRequest(BaseModel):
+    goal: str
+    business_profile: str
+    file_urls: Optional[List[str]] = []
+
+
+@app.post("/analyze")
+async def analyze_data(data: AnalysisRequest, background_tasks: BackgroundTasks):
+    background_tasks.add_task(run_analysis, data)
     return JSONResponse(content={"message": "Processing"}, status_code=200)
     
     
