@@ -11,7 +11,7 @@ import pandas as pd
 from fastapi.concurrency import run_in_threadpool
 from src.graph import run_graph
 from src.s3_retrieval import get_client_snapshot
-from supabase_download import download_and_process_files
+from src.supabase_download import download_and_process_files
 from dotenv import load_dotenv
 from typing import Optional
 import traceback
