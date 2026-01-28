@@ -12,6 +12,8 @@ from src.graph import run_graph
 from src.s3_retrieval import get_client_snapshot
 from dotenv import load_dotenv
 from typing import Optional
+import traceback
+
 load_dotenv()
 
 app = FastAPI(title="Profit Oracle API", description="API for processing analysis requests")
@@ -30,7 +32,7 @@ def run_analysis(data, goal="", business_profile="", file_urls=None, file_conten
     # Placeholder for the actual analysis logic
     temp_path = None
     try:
-        if data is not None and len(data.file_urls) > 0:
+        if data is not None:
             # Read file content
             goal = data.goal
             business_profile = data.business_profile
@@ -75,7 +77,7 @@ def run_analysis(data, goal="", business_profile="", file_urls=None, file_conten
             print("JSON response built")
 
         except Exception as e:
-            print(e)
+            traceback.print_exc()
             result = {
             "report": report,
             "status": "success"
@@ -85,6 +87,7 @@ def run_analysis(data, goal="", business_profile="", file_urls=None, file_conten
 
     except Exception as e:
         print(f"Failed to process request: {str(e)}")
+        traceback.print_exc()
     finally:
         # Clean up temporary file
         if temp_path and os.path.exists(temp_path):
