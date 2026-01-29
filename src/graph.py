@@ -28,4 +28,5 @@ def run_graph(graph_input):
     state = business_consulting_team.invoke(graph_input)
     report = state["final_report"]
     image_path = state["graph_file_path"]
-    return report, image_path
+    impact_value = state["impact_value"]
+    return report, image_path, impact_value

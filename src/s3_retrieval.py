@@ -94,5 +94,5 @@ def get_client_snapshot(client_name, snapshot_idx):
 
 if __name__ == "__main__":
 
-    x = get_last_client_snapshot('kyle', -1)
+    x = get_client_snapshot('kyle', -1)
     print(x)

@@ -27,6 +27,7 @@ class State(TypedDict):
     research_report: str
     analytics_report: str
     graph_file_path: str
+    impact_value: str
     final_report: str
 
 # This subclasses are useful for testing each agent individually:

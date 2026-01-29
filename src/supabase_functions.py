@@ -1,7 +1,10 @@
 import requests
-import io
 import pandas as pd
 from typing import List, Dict, Any
+from supabase import create_client
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 def download_and_process_files(file_urls: List[str]) -> List[Dict[str, Any]]:
     """
@@ -55,3 +58,37 @@ def download_and_process_files(file_urls: List[str]) -> List[Dict[str, Any]]:
             })
     
     return processed_files
+
+
+def save_report_in_supabase(request_id: str, recommendation: str, impact: float):
+
+    supabase = create_client(
+    os.getenv("SUPABASE_URL"),
+    os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    )
+    """Simplest possible report save"""
+    
+    # Save to request_outputs
+    supabase.table("request_outputs").upsert({
+        "request_id": request_id,
+        "output_status": "pending_review",
+        "headline_metrics": {
+            "predicted_impact_monthly": impact,
+            "confidence_percentage": 75,
+            "payback_months": 2
+        },
+        "summary_tab": {
+            "bottom_line": recommendation,
+            "key_findings": [],
+            "confidence_score": 75
+        }
+    }, on_conflict="request_id").execute()
+    
+    # Update request status
+    supabase.table("requests").update({
+        "status": "pending-qa",
+        "predicted_impact": impact,
+        "progress_percentage": 100
+    }).eq("id", request_id).execute()
+    
+    print(f"✓ Report saved for {request_id}")

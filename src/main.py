@@ -8,10 +8,11 @@ import base64
 import os
 import asyncio
 import pandas as pd
+import json
 from fastapi.concurrency import run_in_threadpool
 from src.graph import run_graph
 from src.s3_retrieval import get_client_snapshot
-from src.supabase_download import download_and_process_files
+from Profit_Oracle.src.supabase_functions import download_and_process_files, save_report_in_supabase
 from dotenv import load_dotenv
 from typing import Optional
 import traceback
@@ -36,6 +37,7 @@ def run_analysis(data, client_name=None, snapshot_idx=None):
     try:
         if data is not None:
             # Read file content
+            request_id = data.request_id
             goal = data.goal
             business_profile = data.business_profile
             file_urls = data.file_urls
@@ -60,9 +62,15 @@ def run_analysis(data, client_name=None, snapshot_idx=None):
                 "business_profile":business_profile,
                 "data_path":temp_path}
 
-        report, image_path = run_graph(graph_input)
+        report, image_path, impact_value = run_graph(graph_input)
         print("Graph done")
+
+        # Save report in Supabase
+        if request_id:
+            save_report_in_supabase(request_id, report, impact_value)
         # Read and encode the image file as base64
+        responses_dir = "responses"
+        os.makedirs(responses_dir, exist_ok=True)
         try:
             with open(image_path, "rb") as image_file:
                 image_data = base64.b64encode(image_file.read()).decode('utf-8')
@@ -72,6 +80,7 @@ def run_analysis(data, client_name=None, snapshot_idx=None):
 
             result = {
             "report": report,
+            "impact_value": impact_value,
             "image": {
                 "data": image_data,
                 "mime_type": mime_type,
@@ -79,16 +88,21 @@ def run_analysis(data, client_name=None, snapshot_idx=None):
             },
             "status": "success"
             }
-            print("JSON response built")
+
+            with open(os.path.join(responses_dir, f"{request_id}_response.json"), "w") as json_file:
+                json.dump(result, json_file)
+
+            print("JSON response built and saved locally")
 
         except Exception as e:
             traceback.print_exc()
             result = {
             "report": report,
+            "impact_value": impact_value,
             "status": "success"
             }
-
-        
+            with open(os.path.join(responses_dir, f"{request_id}_response.json"), "w") as json_file:
+                json.dump(result, json_file)
 
     except Exception as e:
         print(f"Failed to process request: {str(e)}")
@@ -122,6 +136,7 @@ goal: str = Form(..., description="The goal/objective of the data analysis proce
 
 
 class AnalysisRequest(BaseModel):
+    request_id: str
     goal: str
     business_profile: str
     file_urls: Optional[List[str]] = []

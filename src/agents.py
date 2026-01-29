@@ -212,6 +212,28 @@ def analytics(state: AnalyticsState):
 #              Synthesizer Agent
 # --------------------------------------------
 
+def get_estimated_impact(analytics_report: str):
+
+    client = OpenAI()
+
+    input_text = f"""Based on the following analytics report, provide a single numeric value estimating the potential 
+    monthly financial impact (in USD) that implementing the insights from the report could have on the business. 
+    Return ONLY the numeric value without any additional text or explanation.
+    Analytics Report:
+    {analytics_report}"""
+
+    response = client.responses.create(
+            model="gpt-5",
+            input=input_text,
+        )
+    print("Raw response for estimated impact:", response.output_text)
+    try:
+        impact_value = float(response.output_text.strip().replace("$","").replace(",",""))
+    except:
+        impact_value = 0.0
+
+    return impact_value
+
 def synthesizer(state: State):
 
     business_profile = state["business_profile"]
@@ -267,5 +289,9 @@ def synthesizer(state: State):
         model="gpt-5",
         input=inputs
     )
+
+    final_report = response.output_text
+
+    impact_value = get_estimated_impact(final_report)
     
-    return {"final_report": response.output_text, "graph_file_path": graph_file_path}
+    return {"final_report": final_report, "impact_value": impact_value, "graph_file_path": graph_file_path}
