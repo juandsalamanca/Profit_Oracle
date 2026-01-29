@@ -12,7 +12,7 @@ import json
 from fastapi.concurrency import run_in_threadpool
 from src.graph import run_graph
 from src.s3_retrieval import get_client_snapshot
-from Profit_Oracle.src.supabase_functions import download_and_process_files, save_report_in_supabase
+from src.supabase_functions import download_and_process_files, save_report_in_supabase
 from dotenv import load_dotenv
 from typing import Optional
 import traceback
